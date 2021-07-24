@@ -4,7 +4,8 @@ load(":json_parser.bzl", "json_parse")
 # they are excluded from the list of packages.
 # See https://github.com/python-poetry/poetry/blob/d2fd581c9a856a5c4e60a25acb95d06d2a963cf2/poetry/puzzle/provider.py#L55
 # and https://github.com/python-poetry/poetry/issues/1584
-POETRY_UNSAFE_PACKAGES = ["setuptools", "distribute", "pip", "wheel"]
+#POETRY_UNSAFE_PACKAGES = ["setuptools", "distribute", "pip", "wheel"]
+POETRY_UNSAFE_PACKAGES = []
 
 def _clean_name(name):
     return name.lower().replace("-", "_").replace(".", "_")
