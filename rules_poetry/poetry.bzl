@@ -143,7 +143,7 @@ def dependency(name):
     return _mapping[name]
 
 def dev_dependency(name):
-    if name not in __devmapping:
+    if name not in _dev_mapping:
         fail("%s is not present in pyproject.toml as a dev-dependency" % name)
 
     return _mapping[name]
