@@ -34,8 +34,34 @@ def _mapping(repository_ctx):
         for dep in pyproject["tool"]["poetry"]["dependencies"].keys()
     }
 
+def _dev_mapping(repository_ctx):
+    result = repository_ctx.execute(
+        [
+            repository_ctx.attr.python_interpreter,
+            repository_ctx.path(repository_ctx.attr._script),
+            "-i",
+            repository_ctx.path(repository_ctx.attr.pyproject),
+            "-o",
+            "-",
+            "--if",
+            "toml",
+            "--of",
+            "json",
+        ],
+    )
+
+    if result.return_code:
+        fail("remarshal failed: %s (%s)" % (result.stdout, result.stderr))
+
+    pyproject = json_parse(result.stdout)
+    return {
+        dep.lower(): "@%s//:library_%s" % (repository_ctx.name, _clean_name(dep))
+        for dep in pyproject["tool"]["poetry"]["dev-dependencies"].keys()
+    }
+
 def _impl(repository_ctx):
     mapping = _mapping(repository_ctx)
+    dev_mapping = _dev_mapping(repository_ctx)
 
     result = repository_ctx.execute(
         [
@@ -72,6 +98,8 @@ def _impl(repository_ctx):
 
     # using a `dict` since there is no `set` type
     excludes = {x.lower(): True for x in repository_ctx.attr.excludes + POETRY_UNSAFE_PACKAGES}
+
+    # TODO (sseveran): Should we also check dev mappings for excludes
     for requested in mapping:
         if requested.lower() in excludes:
             fail("pyproject.toml dependency {} is also in the excludes list".format(requested))
@@ -106,13 +134,20 @@ def _impl(repository_ctx):
         "dependencies.bzl",
         """
 _mapping = {mapping}
+_dev_mapping = {dev_mapping}
 
 def dependency(name):
     if name not in _mapping:
-        fail("%s is not present in pyproject.toml" % name)
+        fail("%s is not present in pyproject.toml as a dependency" % name)
 
     return _mapping[name]
-""".format(mapping = mapping),
+
+def dev_dependency(name):
+    if name not in __devmapping:
+        fail("%s is not present in pyproject.toml as a dev-dependency" % name)
+
+    return _mapping[name]
+""".format(mapping = mapping, dev_mapping = dev_mapping),
     )
 
     repository_ctx.symlink(repository_ctx.path(repository_ctx.attr._rules), repository_ctx.path("defs.bzl"))
