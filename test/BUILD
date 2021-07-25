@@ -10,6 +10,7 @@ py_test(
     deps = [
         dependency("pandas"),
         dependency("kfp"),
+        dependency("numpy"),
     ],
 )
 
